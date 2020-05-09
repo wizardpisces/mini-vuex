@@ -2,9 +2,7 @@ import replace from 'rollup-plugin-replace'
 import typescript from 'rollup-plugin-typescript2'
 import buble from 'rollup-plugin-buble'
 
-import {
-  terser
-} from 'rollup-plugin-terser'
+// import { terser } from 'rollup-plugin-terser'
 const version = process.env.VERSION || require('../package.json').version
 const banner =
   `/**
@@ -90,7 +88,7 @@ const genConfig = (configOpts) => ({
     name: 'mini-vuex',
     sourcemap: false,
     exports: 'named',
-    globals: configOpts.globals,
+    globals: configOpts.globals
   },
   external: externals,
   plugins: genPlugins(configOpts)

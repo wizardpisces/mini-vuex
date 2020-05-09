@@ -57,7 +57,9 @@
       "prettier --write",
       "eslint --fix",
       "git add"
-    ]
+    ],
+    "*.js": "eslint --cache --fix",
+    "*.{js,css,md}": "prettier --write"
   },
   "husky": {
     "hooks": {

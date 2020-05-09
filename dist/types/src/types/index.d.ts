@@ -33,6 +33,8 @@ export interface ActionContext<S, R> {
     commit: Commit;
     state: state<S>;
     getters: any;
+    rootState: R;
+    rootGetters: any;
 }
 export interface Dispatch {
     (type: string, payload?: any, options?: DispatchOptions): Promise<any>;
@@ -52,6 +54,13 @@ export interface CommitOptions {
     silent?: boolean;
     root?: boolean;
 }
+export declare type ModuleContext<S> = {
+    dispatch: Dispatch;
+    commit: Commit;
+    getters: any;
+    state: any;
+    [key: string]: any;
+};
 export interface Module<S, R> {
     namespaced?: boolean;
     state?: S | (() => S);
@@ -65,4 +74,9 @@ export interface ModuleTree<R> {
 }
 export interface ModuleOptions {
     preserveState?: boolean;
+}
+export declare type ActionSubscriber<P, S> = (action: P, state: S) => any;
+export interface ActionSubscribersObject<P, S> {
+    before?: ActionSubscriber<P, S>;
+    after?: ActionSubscriber<P, S>;
 }

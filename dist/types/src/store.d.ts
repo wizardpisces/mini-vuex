@@ -1,23 +1,31 @@
 import Vue, { WatchOptions } from 'Vue';
-import { Store as StoreAbstract, StoreOptions, state, MutationTree, ActionTree, GetterTree, CommitOptions, Module, ModuleOptions } from './types/index';
+import { Store as StoreAbstract, StoreOptions, Mutation, ActionTree, GetterTree, CommitOptions, Module as rawModule, ModuleOptions, ActionSubscribersObject } from './types/index';
+import ModuleCollection from './module/module-collection';
+import Module from './module/module';
 export default class Store<S> implements StoreAbstract<S> {
-    state: state<S>;
-    _vm: Vue;
+    _vm: any;
     _watcherVM: Vue;
     _committing: boolean;
-    _mutations?: MutationTree<S>;
+    _mutations: Record<string, Mutation<S>[]>;
     _actions?: ActionTree<S, S>;
     getters?: GetterTree<S, S>;
+    _modules: ModuleCollection<S>;
     _devtoolHook?: any;
     strict: boolean;
     _subscribers: Function[];
-    _actionSubscribers: Function[];
+    _actionSubscribers: ActionSubscribersObject<S, S>[];
+    _makeLocalGettersCache: Record<string, any>;
+    _wrappedGetters: Record<string, Function>;
+    _modulesNamespaceMap: Record<string, Module<S>>;
     constructor(options: StoreOptions<S>);
     _withCommit(fn: Function): void;
     watch<T>(getter: (state: S, getters: any) => T, cb: (value: T, oldValue: T) => void, options?: WatchOptions): (() => void);
+    get state(): any;
+    replaceState(state: S): void;
     subscribe(sub: Function): () => void;
-    subscribeAction(sub: Function): () => void;
+    subscribeAction(sub: ActionSubscribersObject<S, S>): () => void;
     commit(_type: any, _payload?: any, _options?: CommitOptions): void;
     dispatch(_type: any, _payload?: any): Promise<any>;
-    registerModule<T>(path: string | string[], rawModule: Module<T, S>, options?: ModuleOptions): void;
+    registerModule<T>(path: string | string[], rawModule: rawModule<T, S>, options?: ModuleOptions): void;
+    unregisterModule(path: any): void;
 }

@@ -1,4 +1,5 @@
 import './vue'
+import ModuleCollection from '@/module/module-collection';
 export interface Store<S> {
     // constructor(options: StoreOptions<S>):void;
     // readonly state: state<S>;
@@ -26,6 +27,7 @@ export interface Store<S> {
     // }): void;
 }
 
+
 export interface StoreOptions<S> {
     state: state<S>;
     getters?: GetterTree<S, S>;
@@ -36,7 +38,6 @@ export interface StoreOptions<S> {
     strict?: boolean;
 }
 
-// export type state<S> = S | (() => S)
 export type state<S> = S
 
 export interface GetterTree<S, R> {
@@ -65,8 +66,8 @@ export interface ActionContext<S, R> {
     commit: Commit;
     state: state<S>;
     getters: any;
-    // rootState: R;
-    // rootGetters: any;
+    rootState: R;
+    rootGetters: any;
 }
 
 export interface Dispatch {
@@ -100,6 +101,13 @@ export interface CommitOptions {
     root?: boolean;
 }
 
+export type ModuleContext<S> = {
+    dispatch:Dispatch;
+    commit:Commit;
+    getters:any;
+    state:any;
+    [key:string]:any;
+}
 export interface Module<S, R> {
     namespaced?: boolean;
     state?: S | (() => S);
@@ -115,4 +123,11 @@ export interface ModuleTree<R> {
 
 export interface ModuleOptions {
     preserveState?: boolean;
+}
+
+export type ActionSubscriber<P, S> = (action: P, state: S) => any;
+
+export interface ActionSubscribersObject<P, S> {
+    before?: ActionSubscriber<P, S>;
+    after?: ActionSubscriber<P, S>;
 }
