@@ -1,31 +1,34 @@
-import Vue, { WatchOptions } from 'Vue';
+import { WatchOptions } from 'Vue';
 import { Store as StoreAbstract, StoreOptions, Mutation, ActionTree, GetterTree, CommitOptions, Module as rawModule, ModuleOptions, ActionSubscribersObject } from './types/index';
 import ModuleCollection from './module/module-collection';
 import Module from './module/module';
 export default class Store<S> implements StoreAbstract<S> {
     _vm: any;
-    _watcherVM: Vue;
+    _watcherVM: any;
     _committing: boolean;
     _mutations: Record<string, Mutation<S>[]>;
     _actions?: ActionTree<S, S>;
     getters?: GetterTree<S, S>;
-    _modules: ModuleCollection<S>;
+    _modules: ModuleCollection<any, S>;
     _devtoolHook?: any;
     strict: boolean;
     _subscribers: Function[];
     _actionSubscribers: ActionSubscribersObject<S, S>[];
     _makeLocalGettersCache: Record<string, any>;
     _wrappedGetters: Record<string, Function>;
-    _modulesNamespaceMap: Record<string, Module<S>>;
+    _modulesNamespaceMap: Record<string, Module<any, S>>;
     constructor(options: StoreOptions<S>);
     _withCommit(fn: Function): void;
     watch<T>(getter: (state: S, getters: any) => T, cb: (value: T, oldValue: T) => void, options?: WatchOptions): (() => void);
     get state(): any;
+    set state(v: any);
     replaceState(state: S): void;
     subscribe(sub: Function): () => void;
     subscribeAction(sub: ActionSubscribersObject<S, S>): () => void;
     commit(_type: any, _payload?: any, _options?: CommitOptions): void;
     dispatch(_type: any, _payload?: any): Promise<any>;
+    hotUpdate<T>(newOptions: rawModule<T, S>): void;
     registerModule<T>(path: string | string[], rawModule: rawModule<T, S>, options?: ModuleOptions): void;
     unregisterModule(path: any): void;
 }
+export declare function install(_Vue: any): void;

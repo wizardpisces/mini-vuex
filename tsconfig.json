@@ -14,7 +14,9 @@
         "sourceMap": true,
         "baseUrl": ".",
         "types": [
-            "webpack-env"
+            "webpack-env",
+            "@types/webpack-env",
+            "@types/jasmine"
         ],
         "paths": {
             "@/*": [
@@ -39,5 +41,6 @@
     ],
     "exclude": [
         "node_modules",
+        "test"
     ]
 }

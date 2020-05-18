@@ -1,10 +1,11 @@
-import { Module as rawModule } from '../types/';
+import { Module as rawModule } from '../types';
 import Module from './module';
-export default class ModuleCollection<S> {
-    root: Module<S>;
-    constructor(rawModule: rawModule<S, S>);
-    get(path: string[]): Module<S>;
-    register(path: string[], rawModule: any, runtime?: boolean): void;
+export default class ModuleCollection<S, R> {
+    root: Module<S, R>;
+    constructor(rawModule: rawModule<S, R>);
+    get(path: string[]): Module<S, R>;
+    register(path: string[], rawModule: rawModule<S, R>, runtime?: boolean): void;
     getNamespace(path: string[]): string;
     unregister(path: string[]): void;
+    update<T>(rawRootModule: rawModule<T, S>): void;
 }

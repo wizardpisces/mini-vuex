@@ -1,12 +1,13 @@
-import { Module as rawModule ,ModuleContext,state} from '../types/'
+import { Module as rawModule ,ModuleContext,state} from '../types'
 import { forEachValue} from '../util'
-export default class Module<S> {
-    _children: Record<string,Module<any>>;
-    _rawModule:rawModule<S,S>;
+export default class Module<S,R> {
+    _children: Record<string,Module<S,R>>;
+    _rawModule:rawModule<S,R>;
     context!: ModuleContext<S>;
     state: S;
-    constructor(rawModule: rawModule<S,S>,runtime:boolean){
-        // this.runtime = runtime
+    runtime:boolean;
+    constructor(rawModule: rawModule<S,R>,runtime:boolean){
+        this.runtime = runtime
         // Store some children item
         this._children = Object.create(null)
         // Store the origin module object which passed by programmer
@@ -17,6 +18,19 @@ export default class Module<S> {
         this.state = (typeof rawState === 'function' ? (rawState as any)() : rawState) || {}
     }
 
+    update(rawModule: rawModule<S,R>) {
+        this._rawModule.namespaced = rawModule.namespaced
+        if (rawModule.actions) {
+            this._rawModule.actions = rawModule.actions
+        }
+        if (rawModule.mutations) {
+            this._rawModule.mutations = rawModule.mutations
+        }
+        if (rawModule.getters) {
+            this._rawModule.getters = rawModule.getters
+        }
+    }
+
     get namespaced() {
         return !!this._rawModule.namespaced
     }
@@ -25,7 +39,7 @@ export default class Module<S> {
         return this._children[key]
     }
 
-    addChild(key:string, module:Module<S>) {
+    addChild(key:string, module:Module<S,R>) {
         this._children[key] = module
     }
 

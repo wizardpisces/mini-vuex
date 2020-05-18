@@ -1,25 +1,30 @@
-import Vue, { WatchOptions} from 'Vue';
+import { WatchOptions} from 'Vue';
 import { isObject, isPromise, assert, forEachValue, partial} from './util'
 import { Store as StoreAbstract, StoreOptions, state, MutationTree, Mutation, ActionTree, GetterTree, CommitOptions, Module as rawModule, ModuleContext, ModuleOptions, Payload, Action, ActionHandler, Getter, ActionSubscribersObject} from './types/index'
-import install from "./install";
+// import install from "./install";
+import applyMixin from './mixin'
+
 import ModuleCollection from './module/module-collection';
 import Module from './module/module'
+const __DEV__ = process.env.NODE_ENV !== 'production'
+
+let Vue:any;
 
 export default class Store<S> implements StoreAbstract<S>{
 	_vm:any;
-	_watcherVM!:Vue;
+	_watcherVM:any;
 	_committing:boolean = false;
 	_mutations: Record<string, Mutation<S>[]>;
 	_actions?: ActionTree<S, S>;
 	getters?: GetterTree<S, S>;
-	_modules: ModuleCollection<S>;
+	_modules: ModuleCollection<any,S>;
 	_devtoolHook?: any;
 	strict:boolean =  false;
 	_subscribers:Function[] = [];
 	_actionSubscribers: ActionSubscribersObject<S,S>[] = [];
 	_makeLocalGettersCache:Record<string,any>;
 	_wrappedGetters:Record<string,Function>;
-	_modulesNamespaceMap:Record<string,Module<S>>;
+	_modulesNamespaceMap:Record<string,Module<any,S>>;
 
 	constructor(options: StoreOptions<S>) {
 		// super(options)
@@ -28,6 +33,7 @@ export default class Store<S> implements StoreAbstract<S>{
 		// To allow users to avoid auto-installation in some cases,
 		// this code should be placed here. See #731
 		if (!Vue && typeof window !== 'undefined' && window.Vue) {
+			console.log('install vue')
 			install(window.Vue)
 		}
 		if (process.env.NODE_ENV !== 'production') {
@@ -37,7 +43,8 @@ export default class Store<S> implements StoreAbstract<S>{
 		}
 
 		const {
-			strict = false
+			strict = false,
+			plugins = []
 		} = options;
 
 		// store internal state
@@ -69,6 +76,9 @@ export default class Store<S> implements StoreAbstract<S>{
 
 
 		resetStoreVM(this, state)
+
+		// apply plugins
+		plugins.forEach(plugin => plugin(this))
 	}
 
 	_withCommit(fn:Function) {
@@ -88,6 +98,12 @@ export default class Store<S> implements StoreAbstract<S>{
 
 	get state() {
 		return this._vm._data.$$state
+	}
+
+	set state(v) {
+		if (__DEV__) {
+			assert(false, `use store.replaceState() to explicit replace store state.`)
+		}
 	}
 
 	replaceState(state:S) {
@@ -174,18 +190,23 @@ export default class Store<S> implements StoreAbstract<S>{
 			: entry[0](payload)
 
 		return result.then((res:any) => {
-			// try {
-			// 	this._actionSubscribers
-			// 		.filter(sub => sub.after)
-			// 		.forEach(sub => sub.after(action, this.state))
-			// } catch (e) {
-			// 	if (process.env.NODE_ENV !== 'production') {
-			// 		console.warn(`[vuex] error in after action subscribers: `)
-			// 		console.error(e)
-			// 	}
-			// }
+			try {
+				this._actionSubscribers
+					.filter(sub => sub.after)
+					.forEach(sub => (sub.after as any)(action, this.state))
+			} catch (e) {
+				if (process.env.NODE_ENV !== 'production') {
+					console.warn(`[vuex] error in after action subscribers: `)
+					console.error(e)
+				}
+			}
 			return res
 		})
+	}
+
+	hotUpdate<T>(newOptions:rawModule<T,S>) {
+		this._modules.update(newOptions)
+		resetStore(this, true)
 	}
 
 	//registerModule<T>(path: string, module: Module<T, S>, options?: ModuleOptions): void;
@@ -219,7 +240,7 @@ export default class Store<S> implements StoreAbstract<S>{
 	}
 }
 
-function resetStore(store:any, hot?:false) {
+function resetStore(store:any, hot:boolean = false) {
 	store._actions = Object.create(null)
 	store._mutations = Object.create(null)
 	store._wrappedGetters = Object.create(null)
@@ -232,7 +253,7 @@ function resetStore(store:any, hot?:false) {
 }
 
 
-function installModule(store: Store<any>, rootState: state<any>, path:string[], module:Module<any>, hot?:any) {
+function installModule(store: Store<any>, rootState: state<any>, path:string[], module:Module<any,any>, hot?:any) {
 	const isRoot = !path.length
 	const namespace = store._modules.getNamespace(path)
 
@@ -249,13 +270,13 @@ function installModule(store: Store<any>, rootState: state<any>, path:string[], 
 		const parentState = getNestedState(rootState, path.slice(0, -1))
 		const moduleName = path[path.length - 1]
 		store._withCommit(() => {
-			// if (process.env.NODE_ENV !== 'production') {
-			// 	if (moduleName in parentState) {
-			// 		console.warn(
-			// 			`[vuex] state field "${moduleName}" was overridden by a module with the same name at "${path.join('.')}"`
-			// 		)
-			// 	}
-			// }
+			if (process.env.NODE_ENV !== 'production') {
+				if (moduleName in parentState) {
+					console.warn(
+						`[vuex] state field "${moduleName}" was overridden by a module with the same name at "${path.join('.')}"`
+					)
+				}
+			}
 			Vue.set(parentState, moduleName, module.state)
 		})
 	}
@@ -279,7 +300,7 @@ function installModule(store: Store<any>, rootState: state<any>, path:string[], 
 		registerGetter(store, namespacedType, getter, local)
 	})
 
-	module.forEachChild((child:Module<any>, key:string) => {
+	module.forEachChild((child:Module<any,any>, key:string) => {
 		installModule(store, rootState, path.concat(key), child, hot)
 	})
 }
@@ -318,12 +339,12 @@ function registerAction(store: any, type: string, handler: ActionHandler<any,any
 }
 
 function registerGetter(store: any, type: string, rawGetter: Getter<any, any>, local: ModuleContext<any>) {
-	// if (store._wrappedGetters[type]) {
-	// 	if (process.env.NODE_ENV !== 'production') {
-	// 		console.error(`[vuex] duplicate getter key: ${type}`)
-	// 	}
-	// 	return
-	// }
+	if (store._wrappedGetters[type]) {
+		if (process.env.NODE_ENV !== 'production') {
+			console.error(`[vuex] duplicate getter key: ${type}`)
+		}
+		return
+	}
 	store._wrappedGetters[type] = function wrappedGetter(store:any) {
 		return rawGetter(
 			local.state, // local state
@@ -388,26 +409,26 @@ function makeLocalContext(store:Store<any>, namespace:string, path:string[]) {
 }
 
 function makeLocalGetters(store:Store<any>, namespace:string) {
-	// if (!store._makeLocalGettersCache[namespace]) {
-	// 	const gettersProxy = {}
-	// 	const splitPos = namespace.length
-	// 	Object.keys(store.getters as object).forEach((type) => {
-	// 		// skip if the target getter is not match this namespace
-	// 		if (type.slice(0, splitPos) !== namespace) return
+	if (!store._makeLocalGettersCache[namespace]) {
+		const gettersProxy = {}
+		const splitPos = namespace.length
+		Object.keys(store.getters as object).forEach((type) => {
+			// skip if the target getter is not match this namespace
+			if (type.slice(0, splitPos) !== namespace) return
 
-	// 		// extract local getter type
-	// 		const localType = type.slice(splitPos)
+			// extract local getter type
+			const localType = type.slice(splitPos)
 
-	// 		// Add a port to the getters proxy.
-	// 		// Define as getter property because
-	// 		// we do not want to evaluate the getters in this time.
-	// 		Object.defineProperty(gettersProxy, localType, {
-	// 			get: () => (store.getters as any)[type],
-	// 			enumerable: true
-	// 		})
-	// 	})
-	// 	store._makeLocalGettersCache[namespace] = gettersProxy
-	// }
+			// Add a port to the getters proxy.
+			// Define as getter property because
+			// we do not want to evaluate the getters in this time.
+			Object.defineProperty(gettersProxy, localType, {
+				get: () => (store.getters as any)[type],
+				enumerable: true
+			})
+		})
+		store._makeLocalGettersCache[namespace] = gettersProxy
+	}
 
 	return store._makeLocalGettersCache[namespace]
 }
@@ -484,15 +505,29 @@ function resetStoreVM(store: Store<any>, state: state<any>,hot?:any) {
 		enableStrictMode(store)
 	}
 
-	// if (oldVm) {
-	// 	if (hot) {
-	// 		// dispatch changes in all subscribed watchers
-	// 		// to force getter re-evaluation for hot reloading.
-	// 		store._withCommit(() => {
-	// 			oldVm._data.$$state = null
-	// 		})
-	// 	}
-	// 	Vue.nextTick(() => oldVm.$destroy())
-	// }
+	if (oldVm) {
+		if (hot) {
+			// dispatch changes in all subscribed watchers
+			// to force getter re-evaluation for hot reloading.
+			store._withCommit(() => {
+				oldVm._data.$$state = null
+			})
+		}
+		Vue.nextTick(() => oldVm.$destroy())
+	}
 	
+}
+
+
+export function install(_Vue:any) {
+	// if (Vue && _Vue === Vue) {
+	// 	if (__DEV__) {
+	// 		console.error(
+	// 			'[vuex] already installed. Vue.use(Vuex) should be called only once.'
+	// 		)
+	// 	}
+	// 	return
+	// }
+	Vue = _Vue
+	applyMixin(Vue)
 }

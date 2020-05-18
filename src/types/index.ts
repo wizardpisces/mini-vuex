@@ -1,5 +1,5 @@
-import './vue'
-import ModuleCollection from '@/module/module-collection';
+import 'vue'
+import ModuleCollection from '@/module/module-collection.ts';
 export interface Store<S> {
     // constructor(options: StoreOptions<S>):void;
     // readonly state: state<S>;
@@ -34,9 +34,10 @@ export interface StoreOptions<S> {
     actions?: ActionTree<S, S>;
     mutations?: MutationTree<S>;
     // modules?: ModuleTree<S>;
-    // plugins?: Plugin<S>[];
+    plugins?: Plugin<S>[];
     strict?: boolean;
 }
+export type Plugin<S> = (store: Store<S>) => any;
 
 export type state<S> = S
 

@@ -1,5 +1,5 @@
 import 'babel-polyfill'
-import Vue from 'vue/dist/vue.common.js'
+import Vue from 'vue'
 import Vuex from '../../dist/vuex.common.js'
-
+console.log('inject vuex')
 Vue.use(Vuex)

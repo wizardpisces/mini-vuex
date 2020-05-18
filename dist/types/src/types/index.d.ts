@@ -1,4 +1,4 @@
-import './vue';
+import 'vue';
 export interface Store<S> {
     dispatch: Dispatch;
     commit: Commit;
@@ -8,8 +8,10 @@ export interface StoreOptions<S> {
     getters?: GetterTree<S, S>;
     actions?: ActionTree<S, S>;
     mutations?: MutationTree<S>;
+    plugins?: Plugin<S>[];
     strict?: boolean;
 }
+export declare type Plugin<S> = (store: Store<S>) => any;
 export declare type state<S> = S;
 export interface GetterTree<S, R> {
     [key: string]: Getter<S, R>;
