@@ -40,7 +40,7 @@ Vue.set(parentState,namespace,newState)
 
 Solve subModule inner function and data access
 ```js
-// module structure
+// context structure
 {
     dispatch,
     commit,
