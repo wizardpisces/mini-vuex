@@ -1,6 +1,6 @@
 # Introduction
 
-A source code analyze project created after vuex test cases
+A source code analyze project created by implement vuex test cases
 
 ## vuex source code basic structure
 
